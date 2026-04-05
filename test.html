@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MBTI测试 - 答题</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <header>
+                <h1>MBTI性格测试</h1>
+                <p v-if="!isLoading">第 {{ currentQuestion + 1 }}/{{ questions.length }} 题</p>
+            </header>
+            <main>
+                <!-- 加载动画 -->
+                <div v-if="isLoading" class="loading-container">
+                    <div class="loading-spinner"></div>
+                    <p>加载中，请稍候...</p>
+                </div>
+                
+                <!-- 错误信息 -->
+                <div v-else-if="error" class="error-container">
+                    <p>{{ error }}</p>
+                    <button class="btn" @click="location.reload()">刷新页面</button>
+                </div>
+                
+                <!-- 测试内容 -->
+                <section v-else class="test-section">
+                    <div id="question-container">
+                        <h2>{{ currentQuestionData.text }}</h2>
+                        <div class="options">
+                            <label class="option" v-for="option in options" :key="option.value">
+                                <input type="radio" name="answer" :value="option.value" v-model="selectedAnswer">
+                                <span class="option-text">{{ option.label }}</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="progress-bar">
+                        <div :style="{ width: progress + '%' }"></div>
+                    </div>
+                    <div class="navigation">
+                        <button @click="prevQuestion" :disabled="currentQuestion === 0">上一题</button>
+                        <button @click="nextQuestion">{{ currentQuestion === questions.length - 1 ? '完成测试' : '下一题' }}</button>
+                    </div>
+                </section>
+            </main>
+            <footer>
+                <p>&copy; 2026 MBTI测试网站. 保留所有权利.</p>
+            </footer>
+        </div>
+    </div>
+    <script>
+        const { createApp } = Vue
+        createApp({
+            /**
+             * 数据定义
+             * @returns {Object} 响应式数据
+             */
+            data() {
+                return {
+                    questions: [], // 测试题目数组
+                    isLoading: true, // 加载状态
+                    error: null, // 错误信息
+                    currentQuestion: 0, // 当前问题索引
+                    answers: {}, // 存储用户的答案
+                    selectedAnswer: null, // 当前选中的答案
+                    options: [ // 答题选项
+                        { value: '1', label: '非常不同意' },
+                        { value: '2', label: '不同意' },
+                        { value: '3', label: '中立' },
+                        { value: '4', label: '同意' },
+                        { value: '5', label: '非常同意' }
+                    ]
+                }
+            },
+            /**
+             * 计算属性
+             */
+            computed: {
+                /**
+                 * 获取当前问题数据
+                 * @returns {Object} 当前问题数据
+                 */
+                currentQuestionData() {
+                    return this.questions[this.currentQuestion]
+                },
+                /**
+                 * 计算测试进度百分比
+                 * @returns {number} 进度百分比
+                 */
+                progress() {
+                    return ((this.currentQuestion + 1) / this.questions.length) * 100
+                }
+            },
+            /**
+             * 监听属性
+             */
+            watch: {
+                /**
+                 * 监听问题变化，自动加载问题答案
+                 */
+                currentQuestion() {
+                    this.loadQuestion()
+                }
+            },
+            /**
+             * 方法定义
+             */
+            methods: {
+                /**
+                 * 加载当前问题的答案
+                 */
+                loadQuestion() {
+                    if (this.answers[this.currentQuestion]) {
+                        this.selectedAnswer = this.answers[this.currentQuestion]
+                    } else {
+                        this.selectedAnswer = null
+                    }
+                },
+                /**
+                 * 保存当前答案
+                 * @returns {boolean} 是否保存成功
+                 */
+                saveAnswer() {
+                    if (this.selectedAnswer) {
+                        this.answers[this.currentQuestion] = this.selectedAnswer
+                        // 保存测试进度到本地存储
+                        this.saveProgress()
+                        return true
+                    }
+                    return false
+                },
+                /**
+                 * 保存测试进度到本地存储
+                 */
+                saveProgress() {
+                    const progress = {
+                        currentQuestion: this.currentQuestion,
+                        answers: this.answers
+                    }
+                    localStorage.setItem('mbtiTestProgress', JSON.stringify(progress))
+                },
+                /**
+                 * 从本地存储加载测试进度
+                 * @returns {boolean} 是否加载成功
+                 */
+                loadProgress() {
+                    const progressStr = localStorage.getItem('mbtiTestProgress')
+                    if (progressStr) {
+                        try {
+                            const progress = JSON.parse(progressStr)
+                            this.currentQuestion = progress.currentQuestion
+                            this.answers = progress.answers
+                            return true
+                        } catch (error) {
+                            console.error('加载测试进度失败:', error)
+                            return false
+                        }
+                    }
+                    return false
+                },
+                /**
+                 * 清除测试进度
+                 */
+                clearProgress() {
+                    localStorage.removeItem('mbtiTestProgress')
+                },
+                /**
+                 * 切换到上一题
+                 */
+                prevQuestion() {
+                    if (this.currentQuestion > 0) {
+                        this.saveAnswer()
+                        this.currentQuestion--
+                    }
+                },
+                /**
+                 * 切换到下一题，或完成测试
+                 */
+                nextQuestion() {
+                    if (this.currentQuestion < this.questions.length - 1) {
+                        if (this.saveAnswer()) {
+                            this.currentQuestion++
+                        } else {
+                            alert('请选择一个答案')
+                        }
+                    } else {
+                        if (this.saveAnswer()) {
+                            this.calculateMBTI()
+                        } else {
+                            alert('请选择一个答案')
+                        }
+                    }
+                },
+                /**
+                 * 计算MBTI测试结果
+                 */
+                calculateMBTI() {
+                    // 初始化维度分数
+                    let scores = {
+                        IE: 0,
+                        SN: 0,
+                        TF: 0,
+                        JP: 0
+                    }
+                    
+                    // 计算每个维度的分数
+                    for (let i = 0; i < this.questions.length; i++) {
+                        const question = this.questions[i]
+                        // 验证答案是否有效
+                        let answer = parseInt(this.answers[i])
+                        
+                        // 确保答案是有效的数字，范围在1-5之间
+                        if (isNaN(answer) || answer < 1 || answer > 5) {
+                            console.error('无效的答案:', this.answers[i]);
+                            // 如果答案无效，使用默认值3（中立）
+                            answer = 3;
+                        }
+                        
+                        // 根据维度和答案计算分数
+                        switch (question.dimension) {
+                            case 'IE':
+                                // 1-5分，1-2倾向于I，4-5倾向于E
+                                scores.IE += answer - 3
+                                break
+                            case 'SN':
+                                // 1-5分，1-2倾向于S，4-5倾向于N
+                                scores.SN += answer - 3
+                                break
+                            case 'TF':
+                                // 1-5分，1-2倾向于T，4-5倾向于F
+                                scores.TF += answer - 3
+                                break
+                            case 'JP':
+                                // 1-5分，1-2倾向于J，4-5倾向于P
+                                scores.JP += answer - 3
+                                break
+                        }
+                    }
+                    
+                    // 确定MBTI类型
+                    let mbtiType = ''
+                    mbtiType += scores.IE < 0 ? 'I' : 'E'
+                    mbtiType += scores.SN < 0 ? 'S' : 'N'
+                    mbtiType += scores.TF < 0 ? 'T' : 'F'
+                    mbtiType += scores.JP < 0 ? 'J' : 'P'
+                    
+                    // 保存结果到本地存储
+                    localStorage.setItem('mbtiType', mbtiType)
+                    localStorage.setItem('mbtiScores', JSON.stringify(scores))
+                    
+                    // 清除测试进度
+                    this.clearProgress()
+                    
+                    // 跳转到结果页面
+                    window.location.href = 'result.html'
+                }
+            },
+            /**
+             * 生命周期钩子：组件挂载后执行
+             */
+            mounted() {
+                // 从JSON文件加载测试题目数据
+                // 添加超时处理，5秒后超时
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error('请求超时，请检查网络连接')), 5000);
+                });
+                
+                Promise.race([
+                    fetch('data/questions.json'),
+                    timeoutPromise
+                ])
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('网络请求失败');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        this.questions = data.questions;
+                        this.isLoading = false;
+                        // 尝试加载之前保存的测试进度
+                        this.loadProgress();
+                        this.loadQuestion();
+                    })
+                    .catch(error => {
+                        console.error('加载题目数据失败:', error);
+                        this.error = error.message || '加载题目数据失败，请刷新页面重试';
+                        this.isLoading = false;
+                    });
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>

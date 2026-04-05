@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MBTI测试</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <header>
+                <h1>MBTI性格测试</h1>
+                <p>探索你的性格类型，了解真实的自己</p>
+            </header>
+            <main>
+                <section class="intro">
+                    <h2>什么是MBTI？</h2>
+                    <p>MBTI（Myers-Briggs Type Indicator）是一种基于卡尔·荣格的心理类型理论发展而来的性格测试工具。它通过四个维度来评估个人的性格偏好：</p>
+                    <ul>
+                        <li>内向(I) vs 外向(E)</li>
+                        <li>感觉(S) vs 直觉(N)</li>
+                        <li>思考(T) vs 情感(F)</li>
+                        <li>判断(J) vs 感知(P)</li>
+                    </ul>
+                    <p>通过回答一系列问题，你将获得一个由四个字母组成的性格类型代码，如INTJ、ESFP等，每个类型都有其独特的特点和优势。</p>
+                </section>
+                <section class="start-test">
+                    <h2>开始测试</h2>
+                    <p>测试包含约60个问题，预计需要10-15分钟完成。请根据你的真实情况回答，不要过度思考。</p>
+                    <a href="test.html" class="btn">开始测试</a>
+                </section>
+            </main>
+            <footer>
+                <p>&copy; 2026 MBTI测试网站. 保留所有权利.</p>
+            </footer>
+        </div>
+    </div>
+    <script>
+        const { createApp } = Vue
+        createApp({
+            data() {
+                return {
+                    // 数据
+                }
+            },
+            methods: {
+                // 方法
+            },
+            mounted() {
+                // 组件挂载后执行
+                console.log('MBTI测试网站加载完成');
+                
+                // 平滑滚动效果
+                document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                    anchor.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        document.querySelector(this.getAttribute('href')).scrollIntoView({
+                            behavior: 'smooth'
+                        });
+                    });
+                });
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>

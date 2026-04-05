@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MBTI测试 - 结果</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <header>
+                <h1>MBTI性格测试</h1>
+                <p>测试结果</p>
+            </header>
+            <main>
+                <!-- 加载动画 -->
+                <div v-if="isLoading" class="loading-container">
+                    <div class="loading-spinner"></div>
+                    <p>加载中，请稍候...</p>
+                </div>
+                
+                <!-- 错误信息 -->
+                <div v-else-if="error" class="error-container">
+                    <p>{{ error }}</p>
+                    <button class="btn" @click="location.reload()">刷新页面</button>
+                </div>
+                
+                <!-- 测试结果 -->
+                <section v-else class="result-section">
+                    <div class="result-card">
+                        <h2>你的MBTI类型是：</h2>
+                        <div class="type-display">
+                            <span>{{ mbtiType }} - {{ typeName }}</span>
+                        </div>
+                        <div class="type-description">
+                            <p>{{ typeDescription }}</p>
+                        </div>
+                    </div>
+                    <div class="type-details">
+                        <h3>性格维度解析</h3>
+                        <div class="dimension">
+                            <h4>内向(I) vs 外向(E)</h4>
+                            <div class="dimension-bar">
+                                <div class="bar" :style="{ width: ieBarWidth + '%' }"></div>
+                            </div>
+                            <p>{{ ieDescription }}</p>
+                        </div>
+                        <div class="dimension">
+                            <h4>感觉(S) vs 直觉(N)</h4>
+                            <div class="dimension-bar">
+                                <div class="bar" :style="{ width: snBarWidth + '%' }"></div>
+                            </div>
+                            <p>{{ snDescription }}</p>
+                        </div>
+                        <div class="dimension">
+                            <h4>思考(T) vs 情感(F)</h4>
+                            <div class="dimension-bar">
+                                <div class="bar" :style="{ width: tfBarWidth + '%' }"></div>
+                            </div>
+                            <p>{{ tfDescription }}</p>
+                        </div>
+                        <div class="dimension">
+                            <h4>判断(J) vs 感知(P)</h4>
+                            <div class="dimension-bar">
+                                <div class="bar" :style="{ width: jpBarWidth + '%' }"></div>
+                            </div>
+                            <p>{{ jpDescription }}</p>
+                        </div>
+                    </div>
+                    <div class="share-section">
+                        <h3>分享你的结果</h3>
+                        <div class="share-buttons">
+                            <button class="share-btn" @click="copyToClipboard">
+                                <span class="share-icon">📋</span>
+                                <span>复制链接</span>
+                            </button>
+                            <button class="share-btn" @click="shareToWechat">
+                                <span class="share-icon">💬</span>
+                                <span>微信</span>
+                            </button>
+                            <button class="share-btn" @click="shareToWeibo">
+                                <span class="share-icon">📱</span>
+                                <span>微博</span>
+                            </button>
+                            <button class="share-btn" @click="shareToQQ">
+                                <span class="share-icon">🐧</span>
+                                <span>QQ</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <a href="index.html" class="btn">返回首页</a>
+                        <a href="test.html" class="btn">重新测试</a>
+                    </div>
+                </section>
+            </main>
+            <footer>
+                <p>&copy; 2026 MBTI测试网站. 保留所有权利.</p>
+            </footer>
+        </div>
+    </div>
+    <script>
+        const { createApp } = Vue
+        createApp({
+            data() {
+                return {
+                    mbtiType: '类型加载中...',
+                    typeName: '',
+                    typeDescription: '描述加载中...',
+                    scores: {},
+                    typeDescriptions: {},
+                    dimensionDescriptions: {},
+                    isLoading: true,
+                    error: null
+                }
+            },
+            computed: {
+                // 计算IE维度的宽度和描述
+                ieBarWidth() {
+                    if (!this.scores.IE) return 50
+                    const absoluteScore = Math.abs(this.scores.IE)
+                    const maxPossibleScore = 20 // 每个维度10题，每题最高2分（5-3）
+                    return Math.min((absoluteScore / maxPossibleScore) * 100, 100)
+                },
+                ieDescription() {
+                    if (!this.scores.IE || !this.dimensionDescriptions.IE) return '解析加载中...'
+                    return this.scores.IE < 0 ? this.dimensionDescriptions.IE.I : this.dimensionDescriptions.IE.E
+                },
+                // 计算SN维度的宽度和描述
+                snBarWidth() {
+                    if (!this.scores.SN) return 50
+                    const absoluteScore = Math.abs(this.scores.SN)
+                    const maxPossibleScore = 20 // 每个维度10题，每题最高2分（5-3）
+                    return Math.min((absoluteScore / maxPossibleScore) * 100, 100)
+                },
+                snDescription() {
+                    if (!this.scores.SN || !this.dimensionDescriptions.SN) return '解析加载中...'
+                    return this.scores.SN < 0 ? this.dimensionDescriptions.SN.S : this.dimensionDescriptions.SN.N
+                },
+                // 计算TF维度的宽度和描述
+                tfBarWidth() {
+                    if (!this.scores.TF) return 50
+                    const absoluteScore = Math.abs(this.scores.TF)
+                    const maxPossibleScore = 20 // 每个维度10题，每题最高2分（5-3）
+                    return Math.min((absoluteScore / maxPossibleScore) * 100, 100)
+                },
+                tfDescription() {
+                    if (!this.scores.TF || !this.dimensionDescriptions.TF) return '解析加载中...'
+                    return this.scores.TF < 0 ? this.dimensionDescriptions.TF.T : this.dimensionDescriptions.TF.F
+                },
+                // 计算JP维度的宽度和描述
+                jpBarWidth() {
+                    if (!this.scores.JP) return 50
+                    const absoluteScore = Math.abs(this.scores.JP)
+                    const maxPossibleScore = 20 // 每个维度10题，每题最高2分（5-3）
+                    return Math.min((absoluteScore / maxPossibleScore) * 100, 100)
+                },
+                jpDescription() {
+                    if (!this.scores.JP || !this.dimensionDescriptions.JP) return '解析加载中...'
+                    return this.scores.JP < 0 ? this.dimensionDescriptions.JP.J : this.dimensionDescriptions.JP.P
+                }
+            },
+            methods: {
+                loadResult() {
+                    // 从本地存储获取结果
+                    const mbtiType = localStorage.getItem('mbtiType')
+                    const scoresStr = localStorage.getItem('mbtiScores')
+                    
+                    if (mbtiType && scoresStr) {
+                        this.mbtiType = mbtiType
+                        this.scores = JSON.parse(scoresStr)
+                        
+                        // 设置类型描述
+                        if (this.typeDescriptions[mbtiType]) {
+                            this.typeName = this.typeDescriptions[mbtiType].name
+                            this.typeDescription = this.typeDescriptions[mbtiType].description
+                        } else {
+                            this.typeName = ''
+                            this.typeDescription = '暂无描述'
+                        }
+                    } else {
+                        // 没有结果，跳转到首页
+                        window.location.href = 'index.html'
+                    }
+                },
+                shareResult() {
+                    const mbtiType = localStorage.getItem('mbtiType');
+                    if (mbtiType) {
+                        const message = `我的MBTI性格类型是${mbtiType}！来测试一下你的性格类型吧！`;
+                        const url = window.location.origin + window.location.pathname.replace('result.html', 'index.html');
+                        
+                        // 检查是否支持Web Share API
+                        if (navigator.share) {
+                            navigator.share({
+                                title: 'MBTI测试结果',
+                                text: message,
+                                url: url
+                            })
+                            .catch(err => {
+                                console.log('分享失败:', err);
+                                // 回退到复制链接
+                                this.copyToClipboard(url);
+                            });
+                        } else {
+                            // 回退到复制链接
+                            this.copyToClipboard(url);
+                        }
+                    }
+                },
+                copyToClipboard() {
+                    const url = window.location.origin + window.location.pathname.replace('result.html', 'index.html');
+                    navigator.clipboard.writeText(url)
+                    .then(() => {
+                        alert('链接已复制到剪贴板，快去分享吧！');
+                    })
+                    .catch(err => {
+                        console.log('复制失败:', err);
+                        alert('复制失败，请手动复制链接。');
+                    });
+                },
+                shareToWechat() {
+                    alert('请打开微信，扫描下方二维码或粘贴链接分享给好友');
+                    // 实际项目中可以生成二维码
+                },
+                shareToWeibo() {
+                    const mbtiType = localStorage.getItem('mbtiType');
+                    if (mbtiType) {
+                        const message = `我的MBTI性格类型是${mbtiType}！来测试一下你的性格类型吧！`;
+                        const url = window.location.origin + window.location.pathname.replace('result.html', 'index.html');
+                        const weiboUrl = `http://service.weibo.com/share/share.php?url=${encodeURIComponent(url)}&title=${encodeURIComponent(message)}`;
+                        window.open(weiboUrl, '_blank', 'width=600,height=400');
+                    }
+                },
+                shareToQQ() {
+                    const mbtiType = localStorage.getItem('mbtiType');
+                    if (mbtiType) {
+                        const message = `我的MBTI性格类型是${mbtiType}！来测试一下你的性格类型吧！`;
+                        const url = window.location.origin + window.location.pathname.replace('result.html', 'index.html');
+                        const qqUrl = `https://connect.qq.com/widget/shareqq/index.html?url=${encodeURIComponent(url)}&title=${encodeURIComponent(message)}`;
+                        window.open(qqUrl, '_blank', 'width=600,height=400');
+                    }
+                }
+            },
+            mounted() {
+                // 从JSON文件加载MBTI类型描述数据
+                // 添加超时处理，5秒后超时
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error('请求超时，请检查网络连接')), 5000);
+                });
+                
+                Promise.race([
+                    fetch('data/mbti_descriptions.json'),
+                    timeoutPromise
+                ])
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('网络请求失败');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        this.typeDescriptions = data.typeDescriptions;
+                        this.dimensionDescriptions = data.dimensionDescriptions;
+                        this.isLoading = false;
+                        this.loadResult();
+                    })
+                    .catch(error => {
+                        console.error('加载MBTI描述数据失败:', error);
+                        this.error = error.message || '加载MBTI描述数据失败，请刷新页面重试';
+                        this.isLoading = false;
+                    });
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>

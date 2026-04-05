@@ -1,0 +1,205 @@
+// MBTI测试逻辑
+
+// 测试题目数据
+const questions = [
+    // 内向(I) vs 外向(E)
+    { text: "我喜欢在安静的环境中工作，避免过多的社交活动。", dimension: "IE" },
+    { text: "我倾向于通过与他人交流来解决问题和获取灵感。", dimension: "IE" },
+    { text: "我享受独处的时间，用来反思和充电。", dimension: "IE" },
+    { text: "我喜欢成为注意力的中心，在社交场合中感到活力四射。", dimension: "IE" },
+    { text: "我更倾向于深入思考，而不是频繁地与他人互动。", dimension: "IE" },
+    { text: "我喜欢参加大型社交活动，结识新朋友。", dimension: "IE" },
+    { text: "我在做出决定前，通常会独自思考很长时间。", dimension: "IE" },
+    { text: "我喜欢与他人合作完成任务，而不是独自工作。", dimension: "IE" },
+    { text: "我对外部刺激感到疲惫，需要时间独处来恢复精力。", dimension: "IE" },
+    { text: "我从与他人的互动中获得能量和动力。", dimension: "IE" },
+    
+    // 感觉(S) vs 直觉(N)
+    { text: "我更关注当前的事实和细节，而不是未来的可能性。", dimension: "SN" },
+    { text: "我喜欢探索新的想法和可能性，而不是专注于当前的现实。", dimension: "SN" },
+    { text: "我倾向于相信具体的、可验证的信息，而不是直觉或预感。", dimension: "SN" },
+    { text: "我经常会有灵感和直觉，并且重视这些感觉。", dimension: "SN" },
+    { text: "我喜欢按照既定的计划和步骤进行工作。", dimension: "SN" },
+    { text: "我喜欢灵活应对变化，探索不同的方法和途径。", dimension: "SN" },
+    { text: "我更关注实际的应用和结果，而不是理论和概念。", dimension: "SN" },
+    { text: "我喜欢思考抽象的概念和理论，探索事物的深层意义。", dimension: "SN" },
+    { text: "我倾向于依赖过去的经验和已有的知识。", dimension: "SN" },
+    { text: "我喜欢想象未来的可能性和潜在的发展。", dimension: "SN" },
+    
+    // 思考(T) vs 情感(F)
+    { text: "我在做决定时，更注重逻辑和客观分析，而不是个人情感。", dimension: "TF" },
+    { text: "我在做决定时，更注重个人价值观和他人的感受。", dimension: "TF" },
+    { text: "我倾向于理性地评估情况，不受情感因素的影响。", dimension: "TF" },
+    { text: "我倾向于根据个人情感和价值观来评估情况。", dimension: "TF" },
+    { text: "我喜欢通过逻辑分析来解决问题，而不是考虑人际关系。", dimension: "TF" },
+    { text: "我喜欢通过考虑人际关系和情感因素来解决问题。", dimension: "TF" },
+    { text: "我更关注事情的正确性和公正性，而不是和谐的关系。", dimension: "TF" },
+    { text: "我更关注和谐的关系，而不是严格的正确性和公正性。", dimension: "TF" },
+    { text: "我倾向于直接表达自己的观点，即使可能会引起冲突。", dimension: "TF" },
+    { text: "我倾向于避免冲突，寻求共识和和谐。", dimension: "TF" },
+    
+    // 判断(J) vs 感知(P)
+    { text: "我喜欢有计划、有组织的生活方式，提前安排好事情。", dimension: "JP" },
+    { text: "我喜欢灵活、即兴的生活方式，随遇而安。", dimension: "JP" },
+    { text: "我倾向于提前完成任务，避免最后一刻的压力。", dimension: "JP" },
+    { text: "我倾向于在最后一刻完成任务，享受截止日期的压力。", dimension: "JP" },
+    { text: "我喜欢明确的规则和结构，不喜欢模糊和不确定的情况。", dimension: "JP" },
+    { text: "我喜欢模糊和不确定的情况，享受探索的过程。", dimension: "JP" },
+    { text: "我倾向于快速做出决定，然后坚持执行。", dimension: "JP" },
+    { text: "我倾向于保持开放的选择，延迟做出决定。", dimension: "JP" },
+    { text: "我喜欢将事情整理得井井有条，保持环境的整洁。", dimension: "JP" },
+    { text: "我喜欢灵活的安排，不介意环境的混乱。", dimension: "JP" }
+];
+
+// 测试状态
+let currentQuestion = 0;
+let answers = {};
+
+// DOM元素
+const questionNumber = document.getElementById('question-number');
+const questionText = document.getElementById('question-text');
+const progressBar = document.getElementById('progress');
+const prevBtn = document.getElementById('prev-btn');
+const nextBtn = document.getElementById('next-btn');
+const options = document.querySelectorAll('input[name="answer"]');
+
+// 初始化测试
+function initTest() {
+    loadQuestion(currentQuestion);
+    updateProgress();
+    updateNavigation();
+}
+
+// 加载问题
+function loadQuestion(index) {
+    const question = questions[index];
+    questionNumber.textContent = index + 1;
+    questionText.textContent = question.text;
+    
+    // 重置选项
+    options.forEach(option => {
+        option.checked = false;
+    });
+    
+    // 如果有之前的答案，恢复它
+    if (answers[index]) {
+        const savedAnswer = answers[index];
+        options.forEach(option => {
+            if (option.value == savedAnswer) {
+                option.checked = true;
+            }
+        });
+    }
+}
+
+// 更新进度条
+function updateProgress() {
+    const progress = ((currentQuestion + 1) / questions.length) * 100;
+    progressBar.style.width = progress + '%';
+}
+
+// 更新导航按钮状态
+function updateNavigation() {
+    prevBtn.disabled = currentQuestion === 0;
+    nextBtn.textContent = currentQuestion === questions.length - 1 ? '完成测试' : '下一题';
+}
+
+// 保存答案
+function saveAnswer() {
+    let selectedAnswer = null;
+    options.forEach(option => {
+        if (option.checked) {
+            selectedAnswer = option.value;
+        }
+    });
+    
+    if (selectedAnswer) {
+        answers[currentQuestion] = selectedAnswer;
+        return true;
+    }
+    return false;
+}
+
+// 计算MBTI类型
+function calculateMBTI() {
+    // 初始化维度分数
+    let scores = {
+        IE: 0,
+        SN: 0,
+        TF: 0,
+        JP: 0
+    };
+    
+    // 计算每个维度的分数
+    for (let i = 0; i < questions.length; i++) {
+        const question = questions[i];
+        const answer = parseInt(answers[i]);
+        
+        // 根据维度和答案计算分数
+        switch (question.dimension) {
+            case 'IE':
+                // 1-5分，1-2倾向于I，4-5倾向于E
+                scores.IE += answer - 3;
+                break;
+            case 'SN':
+                // 1-5分，1-2倾向于S，4-5倾向于N
+                scores.SN += answer - 3;
+                break;
+            case 'TF':
+                // 1-5分，1-2倾向于T，4-5倾向于F
+                scores.TF += answer - 3;
+                break;
+            case 'JP':
+                // 1-5分，1-2倾向于J，4-5倾向于P
+                scores.JP += answer - 3;
+                break;
+        }
+    }
+    
+    // 确定MBTI类型
+    let mbtiType = '';
+    mbtiType += scores.IE < 0 ? 'I' : 'E';
+    mbtiType += scores.SN < 0 ? 'S' : 'N';
+    mbtiType += scores.TF < 0 ? 'T' : 'F';
+    mbtiType += scores.JP < 0 ? 'J' : 'P';
+    
+    // 保存结果到本地存储
+    localStorage.setItem('mbtiType', mbtiType);
+    localStorage.setItem('mbtiScores', JSON.stringify(scores));
+    
+    // 跳转到结果页面
+    window.location.href = 'result.html';
+}
+
+// 事件监听器
+prevBtn.addEventListener('click', () => {
+    if (currentQuestion > 0) {
+        saveAnswer();
+        currentQuestion--;
+        loadQuestion(currentQuestion);
+        updateProgress();
+        updateNavigation();
+    }
+});
+
+nextBtn.addEventListener('click', () => {
+    if (currentQuestion < questions.length - 1) {
+        if (saveAnswer()) {
+            currentQuestion++;
+            loadQuestion(currentQuestion);
+            updateProgress();
+            updateNavigation();
+        } else {
+            alert('请选择一个答案');
+        }
+    } else {
+        if (saveAnswer()) {
+            calculateMBTI();
+        } else {
+            alert('请选择一个答案');
+        }
+    }
+});
+
+// 初始化测试
+initTest();
